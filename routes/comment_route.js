@@ -1,0 +1,15 @@
+const express = require("express");
+const { save, findByPostId, deleteById } = require("../controller/comment_controller");
+const router = express.Router();
+const commentValidation = require("../validation/comment_validation");
+
+// Add a comment
+router.post("/", commentValidation, save);
+
+// Get all comments for a specific post
+router.get("/:postId", findByPostId);
+
+// Delete a comment
+router.delete("/:id", deleteById);
+
+module.exports = router;

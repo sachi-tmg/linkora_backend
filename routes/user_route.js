@@ -5,17 +5,20 @@ const {
     findById, 
     deleteById, 
     update, 
-    findUserByRoleId
+    findUserByRoleId,
+    login
 } = require("../controller/user_controller");
 const router = express.Router();
+const userValidation = require("../validation/user_validation");
 const {authenticateToken,authorizeRole} = require("../security/auth")
 
 
 router.get("/", authenticateToken, authorizeRole(["superadmin"]), findAll);
-router.post("/", save);
+router.post("/registerUser", userValidation, save);
+router.post("/login", login);
 router.get("/:id", findById);
 router.delete("/:id",deleteById);
-router.put("/:id",update);
+router.put("/:id",userValidation, update);
 router.get("/role/:roleId", authenticateToken, authorizeRole(["superadmin"]), findUserByRoleId);
 
 module.exports = router;
