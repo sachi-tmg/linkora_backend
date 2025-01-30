@@ -1,5 +1,7 @@
 const RegularUser = require("../model/regularUser");
 const User = require("../model/user");
+const path = require("path");
+const fs = require("fs");
 
 // Find all regular users with user details
 const findAll = async (req, res) => {
@@ -96,7 +98,13 @@ const update = async (req, res) => {
 
         // If a profile picture is provided in the form-data, save it as well
         if (req.file) {
-            updateData.profilePicture = `${req.file.filename}`;
+            const newProfilePicture = `IMG${userId.toString().slice(-5)}.jpg`;
+            const newPath = path.join(req.file.destination, newProfilePicture);
+
+            // Rename and assign the new file name
+            const oldPath = req.file.path;
+            fs.renameSync(oldPath, newPath);
+            updateData.profilePicture = newProfilePicture;
         }
 
         // Update RegularUser fields (bio, profilePicture)
@@ -116,9 +124,6 @@ const update = async (req, res) => {
         res.status(500).json({ message: "Server error", error: e.message });
     }
 };
-
-
-
 
 module.exports = {
     findAll,
