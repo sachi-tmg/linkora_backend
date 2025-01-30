@@ -24,7 +24,6 @@ async function userValidation(req, res, next) {
             return res.status(400).json({ message: "Email already exists!" });
         }
 
-        // Proceed to the next middleware if validation passes and email is unique
         next();
     } catch (err) {
         console.error(err);
