@@ -83,36 +83,82 @@ const deleteById = async (req, res) => {
 
 // Update a regular user by ID
 
+// const update = async (req, res) => {
+//     try {
+//         const regularUser = await RegularUser.findById(req.params.id);
+//         if (!regularUser) {
+//             return res.status(404).json({ message: "Regular user not found" });
+//         }
+
+//         // Extract the userId from the found RegularUser document
+//         const userId = regularUser.userId;
+
+//         // Prepare update data for RegularUser
+//         const updateData = {};
+
+//         // If a profile picture is provided in the form-data, save it as well
+//         if (req.file) {
+//             const newProfilePicture = `IMG${userId.toString().slice(-5)}.jpg`;
+//             const newPath = path.join(req.file.destination, newProfilePicture);
+
+//             // Rename and assign the new file name
+//             const oldPath = req.file.path;
+//             fs.renameSync(oldPath, newPath);
+//             updateData.profilePicture = newProfilePicture;
+//         }
+
+//         // Update RegularUser fields (bio, profilePicture)
+//         const { bio } = req.body;
+//         if (bio) updateData.bio = bio;
+
+//         // Now update the RegularUser document
+//         const updatedRegularUser = await RegularUser.findByIdAndUpdate(req.params.id, updateData, { new: true });
+//         if (!updatedRegularUser) {
+//             return res.status(404).json({ message: "RegularUser update failed" });
+//         }
+
+//         // Return the updated RegularUser
+//         res.status(200).json(updatedRegularUser);
+//     } catch (e) {
+//         console.error(e); // Log the error for debugging purposes
+//         res.status(500).json({ message: "Server error", error: e.message });
+//     }
+// };
+
+
 const update = async (req, res) => {
     try {
-        const regularUser = await RegularUser.findById(req.params.id);
+        // Extract userId from the request body
+        const { userId } = req.body;
+
+        // Find the RegularUser by userId
+        const regularUser = await RegularUser.findOne({ userId: userId });
         if (!regularUser) {
             return res.status(404).json({ message: "Regular user not found" });
         }
-
-        // Extract the userId from the found RegularUser document
-        const userId = regularUser.userId;
 
         // Prepare update data for RegularUser
         const updateData = {};
 
         // If a profile picture is provided in the form-data, save it as well
-        if (req.file) {
-            const newProfilePicture = `IMG${userId.toString().slice(-5)}.jpg`;
-            const newPath = path.join(req.file.destination, newProfilePicture);
+        // if (req.file) {
+        //     const newProfilePicture = `IMG${userId.toString().slice(-5)}.jpg`;
+        //     const newPath = path.join(req.file.destination, newProfilePicture);
 
-            // Rename and assign the new file name
-            const oldPath = req.file.path;
-            fs.renameSync(oldPath, newPath);
-            updateData.profilePicture = newProfilePicture;
-        }
+        //     // Rename and assign the new file name
+        //     const oldPath = req.file.path;
+        //     fs.renameSync(oldPath, newPath);
+        //     updateData.profilePicture = newProfilePicture;
+        // }
+        const { profilePicture } = req.body;
+        if (profilePicture) updateData.profilePicture = profilePicture;
 
         // Update RegularUser fields (bio, profilePicture)
         const { bio } = req.body;
         if (bio) updateData.bio = bio;
 
         // Now update the RegularUser document
-        const updatedRegularUser = await RegularUser.findByIdAndUpdate(req.params.id, updateData, { new: true });
+        const updatedRegularUser = await RegularUser.findOneAndUpdate({ userId: userId }, updateData, { new: true });
         if (!updatedRegularUser) {
             return res.status(404).json({ message: "RegularUser update failed" });
         }
@@ -125,10 +171,72 @@ const update = async (req, res) => {
     }
 };
 
+
+// const update = async (req, res) => {
+//     try {
+//         const { bio } = req.body;
+//         const regularUser = await RegularUser.findById(req.params.id);
+
+//         if (!regularUser) {
+//             return res.status(404).json({ message: "User not found" });
+//         }
+
+//         if (bio) {
+//             regularUser.bio = bio;
+//         }
+
+//         await regularUser.save();
+//         res.status(200).json(regularUser);
+//     } catch (e) {
+//         console.error(e);
+//         res.status(500).json({ message: "Server error", error: e.message });
+//     }
+// };
+
+// // 📌 Upload Profile Picture
+// const uploadProfilePicture = async (req, res) => {
+//     try {
+//         const regularUser = await RegularUser.findById(req.params.id);
+//         if (!regularUser) {
+//             return res.status(404).json({ message: "User not found" });
+//         }
+
+//         if (req.file) {
+//             const newProfilePicture = `IMG${regularUser.userId.toString().slice(-5)}.jpg`;
+//             const newPath = path.join(req.file.destination, newProfilePicture);
+
+//             // Rename uploaded file
+//             fs.renameSync(req.file.path, newPath);
+//             regularUser.profilePicture = newProfilePicture;
+
+//             await regularUser.save();
+//             res.status(200).json({ message: "Profile picture updated", profilePicture: newProfilePicture });
+//         } else {
+//             res.status(400).json({ message: "No file uploaded" });
+//         }
+//     } catch (e) {
+//         console.error(e);
+//         res.status(500).json({ message: "Server error", error: e.message });
+//     }
+// };
+
+
+const uploadImage = async (req, res, next) => {
+    if (!req.file) {
+      return res.status(400).send({ message: "Please upload a file" });
+    }
+    res.status(200).json({
+      success: true,
+      data: req.file.filename,
+    });
+  };
+
+
 module.exports = {
     findAll,
     save,
     findById,
     deleteById,
     update,
+    uploadImage,
 };
