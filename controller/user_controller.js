@@ -3,7 +3,8 @@ const Role = require("../model/role");
 const bcrypt = require("bcrypt");
 const SECRET_KEY = "d363abf662fc7581e61d2b8357d457e6991d3e5ad45a49b0b71b8dae53b4af44";
 const jwt = require("jsonwebtoken")
-const RegularUser = require("../model/regularUser"); // Assuming this model is correct
+const RegularUser = require("../model/regularUser");
+const nanoid = require("nanoid");
 
 // Find all users with role details
 const findAll = async (req, res) => {
@@ -15,44 +16,6 @@ const findAll = async (req, res) => {
         res.status(500).json({ message: "Server error", error: e.message });
     }
 };
-
-
-// Save a new user with role
-// const save = async (req, res) => {
-//     try {
-//         const { fullName, email, password, roleName } = req.body;
-
-//         const existingUser = await User.findOne({ email });
-//         if (existingUser) {
-//             return res.status(400).json({ message: "Email already exists!" });
-//         }
-
-//         // If no roleName is provided, use "regularUser" as the default
-//         const role = await Role.findOne({ roleName: roleName || "regularUser" });
-//         if (!role) {
-//             return res.status(400).json({ message: "Invalid role name" });
-//         }
-
-//         // Hash the password before saving
-//         const hashedPassword = await bcrypt.hash(password, 10);
-
-//         const newUser = new User({
-//             fullName,
-//             email,
-//             password: hashedPassword, // Store hashed password
-//             roleId: role._id,
-//         });
-
-//         await newUser.save();
-//         res.status(201).json({
-//         success: true,
-//         message: "User registered successfully!",
-//         user: newUser 
-// });
-//     } catch (e) {
-//         res.status(500).json({ message: "Server error", error: e.message });
-//     }
-// };
 
 
 const save = async (req, res) => {
@@ -74,10 +37,13 @@ const save = async (req, res) => {
         // Hash the password before saving
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        const username = await generateUsername(email);
+
         const newUser = new User({
             fullName,
             email,
-            password: hashedPassword, // Store hashed password
+            password: hashedPassword,
+            username: username, 
             roleId: role._id,
         });
 
@@ -91,18 +57,28 @@ const save = async (req, res) => {
 
         // Find all regular users and populate their details
         const usersWithRole = await User.find({ roleId: "677158fc2375232531ced234" }); // Use actual roleId
-        const regularUsers = await RegularUser.find().populate("userId", "fullName email");
+        const regularUsers = await RegularUser.find().populate("userId", "fullName email username");
 
         res.status(201).json({
             success: true,
             message: "User registered successfully!",
             user: newUser,
-            regularUsers // You can return the regular users if necessary, or just omit it
+            regularUsers 
         });
     } catch (e) {
         res.status(500).json({ message: "Server error", error: e.message });
     }
 };
+
+const generateUsername = async (email) => {
+    let username = email.split("@")[0];
+
+    let isUsernameNotUnique = await User.exists({username: username}).then((result) => result)
+
+    isUsernameNotUnique ? username += nanoid() : "";
+
+    return username;
+}
 
 
 // Login API
@@ -137,7 +113,8 @@ const login = async (req, res) => {
 
         res.status(200).json({
             message: "Login successful",
-            token: token,// Send back the user data for convenience
+            token: token,
+            username: user.username,
         });
     } catch (e) {
         console.error("Login error:", e.message);  // Log error details
