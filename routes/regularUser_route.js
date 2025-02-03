@@ -1,25 +1,26 @@
 const express = require("express");
+const uploads = require("../middleware/upload");
 const {
     findAll,
     save,
     findById,
     deleteById,
     update,
+    uploadImage,
 } = require("../controller/regularUser_controller");
 
 const regularUserValidation = require("../validation/regularUser_validation");
 
 const router = express.Router();
-
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
 // Ensure the directory exists or create it
-const uploadFolder = path.join(__dirname, '../regularUserImages'); // Relative path to your project root
+const uploadFolder = path.join(__dirname, '../regularUserImages');
 
 if (!fs.existsSync(uploadFolder)) {
-    fs.mkdirSync(uploadFolder, { recursive: true }); // Create the folder if it doesn't exist
+    fs.mkdirSync(uploadFolder, { recursive: true }); 
 }
 
 // Set up Multer storage configuration
@@ -36,9 +37,10 @@ const upload = multer({ storage });
 
 // Routes
 router.get("/", findAll); // Get all regular users
-router.post("/", upload.single('file'), regularUserValidation, save); // Create a new regular user (uploading a profile image)
+router.post("/saveRegularUser", upload.single('image'), regularUserValidation, save); // Create a new regular user (uploading a profile image)
 router.get("/:id", findById); // Get a regular user by ID
 router.delete("/:id", deleteById); // Delete a regular user by ID
-router.put("/:id", upload.single('file'), regularUserValidation, update); // Update a regular user (with optional file upload)
+router.put("/save", regularUserValidation, update);
+router.post("/uploadImage", uploads, uploadImage); // Update a regular user (with optional file upload)
 
 module.exports = router;
