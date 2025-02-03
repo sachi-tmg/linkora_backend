@@ -3,6 +3,7 @@ const Role = require("../model/role");
 const bcrypt = require("bcrypt");
 const SECRET_KEY = "d363abf662fc7581e61d2b8357d457e6991d3e5ad45a49b0b71b8dae53b4af44";
 const jwt = require("jsonwebtoken")
+const RegularUser = require("../model/regularUser"); // Assuming this model is correct
 
 // Find all users with role details
 const findAll = async (req, res) => {
@@ -54,10 +55,9 @@ const findAll = async (req, res) => {
 // };
 
 
-
 const save = async (req, res) => {
     try {
-        const { fullName, email, password, roleName, profile_picture } = req.body;
+        const { fullName, email, password, roleName } = req.body;
 
         // Check if the email already exists
         const existingUser = await User.findOne({ email });
@@ -65,7 +65,7 @@ const save = async (req, res) => {
             return res.status(400).json({ message: "Email already exists!" });
         }
 
-        // Find the role, defaulting to "regularUser"
+        // If no roleName is provided, use "regularUser" as the default
         const role = await Role.findOne({ roleName: roleName || "regularUser" });
         if (!role) {
             return res.status(400).json({ message: "Invalid role name" });
@@ -74,7 +74,6 @@ const save = async (req, res) => {
         // Hash the password before saving
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Prepare user object
         const newUser = new User({
             fullName,
             email,
@@ -82,25 +81,28 @@ const save = async (req, res) => {
             roleId: role._id,
         });
 
-        // Only save profile_picture if the user is a regular user
-        if (role.roleName === "regularUser" && profile_picture) {
-            newUser.profile_picture = profile_picture;
+        await newUser.save();
+
+        // Automatically create RegularUser profiles if they don't exist
+        const existingRegularUser = await RegularUser.findOne({ userId: newUser._id });
+        if (!existingRegularUser) {
+            await RegularUser.create({ userId: newUser._id });
         }
 
-        await newUser.save();
+        // Find all regular users and populate their details
+        const usersWithRole = await User.find({ roleId: "677158fc2375232531ced234" }); // Use actual roleId
+        const regularUsers = await RegularUser.find().populate("userId", "fullName email");
+
         res.status(201).json({
             success: true,
             message: "User registered successfully!",
-            user: newUser 
+            user: newUser,
+            regularUsers // You can return the regular users if necessary, or just omit it
         });
-
     } catch (e) {
         res.status(500).json({ message: "Server error", error: e.message });
     }
 };
-
-
-
 
 
 // Login API
