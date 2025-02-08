@@ -1,8 +1,11 @@
+require('dotenv').config();
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../model/user");
 
-const SECRET_KEY = "d363abf662fc7581e61d2b8357d457e6991d3e5ad45a49b0b71b8dae53b4af44";
+
+const SECRET_KEY = process.env.SECRET_KEY;
 
 // Register API
 const register = async (req, res) => {

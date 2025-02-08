@@ -1,10 +1,11 @@
 const User = require("../model/user");
 const Role = require("../model/role");
 const bcrypt = require("bcrypt");
-const SECRET_KEY = "d363abf662fc7581e61d2b8357d457e6991d3e5ad45a49b0b71b8dae53b4af44";
+require("dotenv").config();
 const jwt = require("jsonwebtoken")
 const RegularUser = require("../model/regularUser");
 const nanoid = require("nanoid");
+const { getAuth } = require("firebase-admin/auth");
 
 // Find all users with role details
 const findAll = async (req, res) => {
