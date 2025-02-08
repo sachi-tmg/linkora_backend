@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const postSchema = new mongoose.Schema({
-    userId: {
+    author: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "users",
         required: true,
@@ -15,7 +15,7 @@ const postSchema = new mongoose.Schema({
         required: true,
     },
     postPicture: {
-        type: String, // Filename of the uploaded image (optional)
+        type: String,
         default: null,
     },
     dateCreated: {
@@ -26,14 +26,24 @@ const postSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
-    likeCount: {
-        type: Number,
-        default: 0,
+    activity: {
+        likeCount: {
+            type: Number,
+            default: 0,
+        },
+        commentCount: {
+            type: Number,
+            default: 0,
+        },
     },
-    commentCount: {
-        type: Number,
-        default: 0,
+    comments: {
+        type: [Schema.Types.ObjectId],
+        ref: 'comments'
     },
+    draft: {
+        type: Boolean,
+        default: false
+    }
 });
 
 const Post = mongoose.model("posts", postSchema);
