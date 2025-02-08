@@ -7,6 +7,8 @@ const post_router = require("./routes/post_route");
 const like_router = require("./routes/like_route");
 const comment_router = require("./routes/comment_route");
 const cors = require("cors");
+require("dotenv").config();
+
 
 const app = express();
 
