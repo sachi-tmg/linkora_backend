@@ -23,6 +23,10 @@ const userSchema = new mongoose.Schema({
         ref: "roles", 
         required: true,
     },
+    google_auth: {
+        type: Boolean,
+        default: false
+    },
     dateCreated: {
         type: Date,
         default: Date.now, 
