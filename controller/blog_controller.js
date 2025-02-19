@@ -1,119 +1,3 @@
-// const Blog = require("../model/blog");
-// const User = require("../model/user");
-
-// // Find all blogs with user details
-// const findAll = async (req, res) => {
-//     try {
-//         const blogs = await Blog.find()
-//             .populate("userId", "fullName email");
-//         res.status(200).json(blogs);
-//     } catch (e) {
-//         res.status(500).json({ message: "Server error", error: e.message });
-//     }
-// };
-
-// // Save a new blog
-// const save = async (req, res) => {
-//     try {
-//         const { userId, title, content } = req.body;
-//         const blogPicture = req.file ? req.file.originalname : null; 
-
-//         // Validate if the user exists
-//         const user = await User.findById(userId);
-//         if (!user) {
-//             return res.status(400).json({ message: "Invalid user ID" });
-//         }
-
-//         const newBlog = new Blog({
-//             userId,
-//             title,
-//             content,
-//             blogPicture,
-//         });
-
-//         await newBlog.save();
-//         res.status(201).json(newBlog);
-//     } catch (e) {
-//         res.status(500).json({ message: "Server error", error: e.message });
-//     }
-// };
-
-// // Find a blog by ID
-// const findById = async (req, res) => {
-//     try {
-//         const blog = await Blog.findById(req.params.id)
-//             .populate("userId", "fullName email");
-//         if (!blog) {
-//             return res.status(404).json({ message: "Blog not found" });
-//         }
-//         res.status(200).json(blog);
-//     } catch (e) {
-//         res.status(500).json({ message: "Server error", error: e.message });
-//     }
-// };
-
-// // Delete a blog by ID
-// const deleteById = async (req, res) => {
-//     try {
-//         const blog = await Blog.findByIdAndDelete(req.params.id);
-//         if (!blog) {
-//             return res.status(404).json({ message: "Blog not found" });
-//         }
-//         res.status(200).json({ message: "Blog deleted!" });
-//     } catch (e) {
-//         res.status(500).json({ message: "Server error", error: e.message });
-//     }
-// };
-
-// // Update a blog by ID
-// const update = async (req, res) => {
-//     try {
-//         const { title, content } = req.body;
-//         const blogPicture = req.file ? req.file.originalname : undefined;
-
-//         // Update fields
-//         const updateData = { title, content };
-//         if (blogPicture) {
-//             updateData.blogPicture = blogPicture; // If a new file is uploaded, update the blog picture
-//         }
-
-//         const blog = await Blog.findByIdAndUpdate(
-//             req.params.id,
-//             updateData,
-//             { new: true }
-//         );
-
-//         if (!blog) {
-//             return res.status(404).json({ message: "Blog not found" });
-//         }
-
-//         res.status(200).json(blog);
-//     } catch (e) {
-//         res.status(500).json({ message: "Server error", error: e.message });
-//     }
-// };
-
-// const uploadImage = async (req, res, next) => {
-//     if (!req.file) {
-//       return res.status(400).send({ message: "Please upload a file" });
-//     }
-//     res.status(200).json({
-//       success: true,
-//       data: req.file.filename,
-//     });
-//   };
-
-
-// module.exports = {
-//     findAll,
-//     save,
-//     findById,
-//     deleteById,
-//     update,
-//     uploadImage,
-// };
-
-
 const Blog = require("../model/blog");
 const User = require("../model/user");
 const RegularUser = require("../model/regularUser");
@@ -138,13 +22,52 @@ const verifyJWT = (req, res, next) => {
 
         
     })
-}
+};
+
+
+// Get all blogs with user details
+const findAll = async (req, res) => {
+    try {
+        let maxLimit = 5;
+
+        // Fetch blogs and populate userId from users
+        const blogs = await Blog.find({ draft: false })
+            .populate({
+                path: "userId",
+                select: "fullName email username",
+            })
+            .sort({ dateCreated: -1 })
+            .select("blog_id title des blogPicture activity tags dateCreated userId")
+            .limit(maxLimit);
+
+        // Fetch profile pictures separately
+        const blogData = await Promise.all(
+            blogs.map(async (blog) => {
+                const regularUser = await RegularUser.findOne({ userId: blog.userId._id }).select("profilePicture -_id");
+                
+                const blogObj = blog.toObject();
+                if (blogObj.userId && blogObj.userId._id) {
+                    delete blogObj.userId._id;
+                }
+
+                return {
+                    ...blogObj,
+                    profilePicture: regularUser ? regularUser.profilePicture : "defaultProfile.jpg"
+                };
+            })
+        );
+
+        return res.status(200).json({ blogs: blogData });
+    } catch (e) {
+        return res.status(500).json({ message: "Server error", error: e.message });
+    }
+};
+
 
 // Save a new blog
 const save = async (req, res) => {
     try {
-        let { title, des, content, tags, draft } = req.body;
-        const blogPicture = req.file ? req.file.originalname : null; 
+        let { title, des, blogPicture, content, tags, draft } = req.body;
 
         const userId = req.user.userId;
 
@@ -169,6 +92,8 @@ const save = async (req, res) => {
             draft: Boolean(draft),
         });
 
+        console.log(newBlog)
+
         const savedBlog = await newBlog.save();
 
         let incrementVal = draft ? 0 : 1;
@@ -183,19 +108,6 @@ const save = async (req, res) => {
             return res.status(200).json({ id: savedBlog._id })
       
 
-    } catch (e) {
-        res.status(500).json({ message: "Server error", error: e.message });
-    }
-};
-
-
-// Get all blogs with user details
-const findAll = async (req, res) => {
-    try {
-        const blogs = await Blog.find()
-            .populate("userId", "fullName email")
-            .populate("comments");
-        res.status(200).json(blogs);
     } catch (e) {
         res.status(500).json({ message: "Server error", error: e.message });
     }
@@ -269,8 +181,9 @@ const uploadImage = async (req, res) => {
 
     res.status(200).json({
         success: true,
-        filename: `/Banners/${req.file.filename}`, // Send the file path for frontend use
+        filename: req.file.filename,
     });
+    console.log(req.file.filename)
 };
 module.exports = {
     findAll,
