@@ -1,15 +1,15 @@
 const express = require("express");
-const { save, findByPostId, deleteById } = require("../controller/like_controller");
+const { save, findByBlogId, deleteById } = require("../controller/like_controller");
 const router = express.Router();
 const likeValidation = require("../validation/like_validation");
 
-// Route to like a post
+// Route to like a blog
 router.post("/", likeValidation, save);
 
-// Route to get all likes for a specific post
-router.get("/:postId", findByPostId);
+// Route to get all likes for a specific blog
+router.get("/:blogId", findByBlogId);
 
-// Route to unlike a post
+// Route to unlike a blog
 router.delete("/", deleteById);
 
 module.exports = router;

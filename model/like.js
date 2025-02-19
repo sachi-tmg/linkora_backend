@@ -6,9 +6,9 @@ const likeSchema = new mongoose.Schema({
         ref: "users", // References the users collection
         required: true,
     },
-    postId: {
+    blogId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "posts", // References the posts collection
+        ref: "blogs", // References the blogs collection
         required: true,
     },
     dateLiked: {

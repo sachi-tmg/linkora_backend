@@ -1,16 +1,16 @@
 const Comment = require("../model/comment");
-const Post = require("../model/post");
+const Blog = require("../model/blog");
 
 // Add a new comment
 const save = async (req, res) => {
     try {
-        const { userId, postId, content } = req.body;
+        const { userId, blogId, content } = req.body;
 
-        const newComment = new Comment({ userId, postId, content });
+        const newComment = new Comment({ userId, blogId, content });
         await newComment.save();
 
-        // Increment the comment count in the post
-        await Post.findByIdAndUpdate(postId, { $inc: { commentCount: 1 } });
+        // Increment the comment count in the blog
+        await Blog.findByIdAndUpdate(blogId, { $inc: { commentCount: 1 } });
 
         res.status(201).json(newComment);
     } catch (e) {
@@ -18,10 +18,10 @@ const save = async (req, res) => {
     }
 };
 
-// Get all comments for a specific post
-const findByPostId = async (req, res) => {
+// Get all comments for a specific blog
+const findByBlogId = async (req, res) => {
     try {
-        const comments = await Comment.find({ postId: req.params.postId })
+        const comments = await Comment.find({ blogId: req.params.blogId })
             .populate("userId", "fullName email")
             .sort({ dateCommented: -1 }); // Latest comments first
         res.status(200).json(comments);
@@ -40,8 +40,8 @@ const deleteById = async (req, res) => {
             return res.status(404).json({ message: "Comment not found" });
         }
 
-        // Decrement the comment count in the post
-        await Post.findByIdAndUpdate(deletedComment.postId, { $inc: { commentCount: -1 } });
+        // Decrement the comment count in the blog
+        await Blog.findByIdAndUpdate(deletedComment.blogId, { $inc: { commentCount: -1 } });
 
         res.status(200).json({ message: "Comment deleted" });
     } catch (e) {
@@ -51,6 +51,6 @@ const deleteById = async (req, res) => {
 
 module.exports = {
     save,
-    findByPostId,
+    findByBlogId,
     deleteById,
 };

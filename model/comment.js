@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
 
 const commentSchema = new mongoose.Schema({
-    postId: {
+    blogId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "posts",
+        ref: "blogs",
         required: true,
     },
     blog_author: {
