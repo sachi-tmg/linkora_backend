@@ -27,6 +27,10 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    loggedInOnce: { 
+        type: Boolean, 
+        default: false 
+    },
     dateCreated: {
         type: Date,
         default: Date.now, 

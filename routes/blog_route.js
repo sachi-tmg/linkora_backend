@@ -11,8 +11,18 @@ const {
 const blogValidation = require("../validation/blog_validation");
 const uploads = require("../middleware/uploadBanner");
 
-
 const router = express.Router();
+
+router.get("/latest-blogs", findAll); // Get all blogs
+router.post("/create-blog", verifyJWT, uploads, save); // Create a new blog (uploading a blog image)
+router.get("/:id", findById); // Get a blog by ID
+router.delete("/:id", deleteById); // Delete a blog by ID
+router.put("/:id", blogValidation, uploads, update); // Update a blog (with optional file upload)
+router.post("/uploadBanner", uploads, uploadImage);
+
+module.exports = router;
+
+
 // const multer = require("multer");
 // const path = require("path");
 // const fs = require("fs");
@@ -37,11 +47,3 @@ const router = express.Router();
 // const upload = multer({ storage });
 
 // Routes
-router.get("/", findAll); // Get all blogs
-router.post("/create-blog", verifyJWT, uploads, save); // Create a new blog (uploading a blog image)
-router.get("/:id", findById); // Get a blog by ID
-router.delete("/:id", deleteById); // Delete a blog by ID
-router.put("/:id", blogValidation, uploads, update); // Update a blog (with optional file upload)
-router.post("/uploadBanner", uploads, uploadImage);
-
-module.exports = router;

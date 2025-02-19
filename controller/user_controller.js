@@ -4,7 +4,7 @@ const bcrypt = require("bcrypt");
 require("dotenv").config();
 const jwt = require("jsonwebtoken")
 const RegularUser = require("../model/regularUser");
-const nanoid = require("nanoid");
+const { v4: uuidv4 } = require('uuid');
 const { getAuth } = require("firebase-admin/auth");
 
 // Find all users with role details
@@ -76,7 +76,7 @@ const generateUsername = async (email) => {
 
     let isUsernameNotUnique = await User.exists({username: username}).then((result) => result)
 
-    isUsernameNotUnique ? username += nanoid() : "";
+    isUsernameNotUnique ? username += uuidv4() : "";
 
     return username;
 }
@@ -94,16 +94,25 @@ const login = async (req, res) => {
 
     try {
         // Find the user by email and populate the roleId
-        const user = await User.findOne({ email:email }).populate('roleId');
+        const user = await User.findOne({ email:email }).populate('roleId').exec();
         if (!user) {
             return res.status(400).json({ message: "Invalid credentials" });
         }
+
+        const regularUser = await RegularUser.findOne({ userId: user._id });
 
         // Validate the password
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
             return res.status(400).json({ message: "Invalid credentials" });
         }
+
+        // Check if it's the user's first login
+        if (!user.loggedInOnce) {
+            user.loggedInOnce = true; 
+            await user.save();
+        }
+
 
         // Create JWT token with user details and role
         const token = jwt.sign(
@@ -112,11 +121,15 @@ const login = async (req, res) => {
             { expiresIn: "90d" }
         );
 
+        const profilePicture = regularUser ? regularUser.profilePicture : null;
+
         res.status(200).json({
             message: "Login successful",
             token: token,
             username: user.username,
+            profilePicture: profilePicture,
         });
+        console.log(profilePicture)
     } catch (e) {
         console.error("Login error:", e.message);  // Log error details
         res.status(500).json({ message: "Server error", error: e.message });
@@ -206,5 +219,5 @@ module.exports = {
     findById,
     deleteById,
     update,
-    findUserByRoleId
+    findUserByRoleId,
 };
