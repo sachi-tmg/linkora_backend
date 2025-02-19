@@ -30,7 +30,7 @@ const findAll = async (req, res) => {
 const save = async (req, res) => {
     try {
         const { userId, bio } = req.body;
-        const profilePicture = req.file ? req.file.originalname : "defaultProfile.jpg";
+        const profilePicture = req.file ? req.file.originalname : undefined;
 
         // Validate if the user exists and has the correct role
         const user = await User.findOne({ _id: userId, roleId: "677158fc2375232531ced234" });
