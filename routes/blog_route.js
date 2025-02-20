@@ -2,7 +2,10 @@ const express = require("express");
 const {
     findAll,
     save,
-    findById,
+    findTrending,
+    countRoute,
+    countSearchRoute,
+    findByTag,
     deleteById,
     update,
     uploadImage,
@@ -13,9 +16,12 @@ const uploads = require("../middleware/uploadBanner");
 
 const router = express.Router();
 
-router.get("/latest-blogs", findAll); // Get all blogs
-router.post("/create-blog", verifyJWT, uploads, save); // Create a new blog (uploading a blog image)
-router.get("/:id", findById); // Get a blog by ID
+router.post("/latest-blogs", findAll); // Get all blogs
+router.post("/all-latest-blogs-count", countRoute);
+router.post("/create-blog", verifyJWT, uploads, blogValidation, save); // Create a new blog (uploading a blog image)
+router.get("/trending-blogs", findTrending);
+router.post("/search-blogs", findByTag);
+router.post("/search-blogs-count", countSearchRoute);
 router.delete("/:id", deleteById); // Delete a blog by ID
 router.put("/:id", blogValidation, uploads, update); // Update a blog (with optional file upload)
 router.post("/uploadBanner", uploads, uploadImage);

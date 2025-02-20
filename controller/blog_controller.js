@@ -28,6 +28,9 @@ const verifyJWT = (req, res, next) => {
 // Get all blogs with user details
 const findAll = async (req, res) => {
     try {
+
+        let { page } = req.body;
+
         let maxLimit = 5;
 
         // Fetch blogs and populate userId from users
@@ -36,8 +39,9 @@ const findAll = async (req, res) => {
                 path: "userId",
                 select: "fullName email username",
             })
-            .sort({ dateCreated: -1 })
-            .select("blog_id title des blogPicture activity tags dateCreated userId")
+            .sort({ "dateCreated": -1 })
+            .select("blog_id title des blogPicture activity tags dateCreated userId -_id")
+            .skip((page -1) * maxLimit)
             .limit(maxLimit);
 
         // Fetch profile pictures separately
@@ -52,7 +56,7 @@ const findAll = async (req, res) => {
 
                 return {
                     ...blogObj,
-                    profilePicture: regularUser ? regularUser.profilePicture : "defaultProfile.jpg"
+                    profilePicture: regularUser ? regularUser.profilePicture : undefined
                 };
             })
         );
@@ -63,6 +67,36 @@ const findAll = async (req, res) => {
     }
 };
 
+const countRoute = async (req, res) => {
+    Blog.countDocuments({ draft:false })
+    .then(count => {
+        return res.status(200).json({ totalDocs: count })
+    })
+    .catch(err => {
+        console.log(err.message);
+        return res.status(500).json({ error: err.message })
+    })
+}
+
+const countSearchRoute = async (req, res) => {
+    try {
+        let { tag } = req.body;
+
+        let findQuery = { tags: tag, draft: false };
+
+        Blog.countDocuments(findQuery)
+        .then(count => {
+            return res.status(200).json({ totalDocs: count })
+        })
+        .catch(err => {
+            console.log(err.message);
+            return res.status(500).json({ error: err.message })
+    })
+    } catch (err) {
+        return res.status(500).json({ error: err.message })
+    }
+
+} 
 
 // Save a new blog
 const save = async (req, res) => {
@@ -114,17 +148,80 @@ const save = async (req, res) => {
 };
 
 
-// Find a blog by ID
-const findById = async (req, res) => {
+// Get trending blogs with user details
+const findTrending = async (req, res) => {
     try {
-        const blog = await Blog.findById(req.params.id)
-            .populate("userId", "fullName email")
-            .populate("comments");
+        let maxLimit = 5;
 
-        if (!blog) {
-            return res.status(404).json({ message: "Blog not found" });
-        }
-        res.status(200).json(blog);
+        // Fetch blogs and populate userId from users
+        const blogs = await Blog.find({ draft: false })
+            .populate({
+                path: "userId",
+                select: "fullName email username",
+            })
+            .sort({ "activity.total_read": -1, "activity.total_likes": -1, "dateCreated": -1 })
+            .select("blog_id title dateCreated userId -_id")
+            .limit(maxLimit);
+
+        // Fetch profile pictures separately
+        const blogData = await Promise.all(
+            blogs.map(async (blog) => {
+                const regularUser = await RegularUser.findOne({ userId: blog.userId._id }).select("profilePicture -_id");
+                
+                const blogObj = blog.toObject();
+                if (blogObj.userId && blogObj.userId._id) {
+                    delete blogObj.userId._id;
+                }
+
+                return {
+                    ...blogObj,
+                    profilePicture: regularUser ? regularUser.profilePicture : undefined
+                };
+            })
+        );
+
+        return res.status(200).json({ blogs: blogData });
+    } catch (e) {
+        return res.status(500).json({ message: "Server error", error: e.message });
+    }
+};
+
+
+// Find a blog by ID
+const findByTag = async (req, res) => {
+    try {
+        let { tag, page } = req.body;
+        let findQuery = { tags: tag, draft: false };
+        let maxLimit = 2;
+
+        const blogs = await Blog.find(findQuery)
+            .populate({
+                path: "userId",
+                select: "fullName email username",
+            })
+            .sort({"dateCreated": -1 })
+            .select("blog_id title des blogPicture activity tags dateCreated userId -_id")
+            .skip((page - 1) * maxLimit)
+            .limit(maxLimit);
+
+        // Fetch profile pictures separately
+        const blogData = await Promise.all(
+            blogs.map(async (blog) => {
+                const regularUser = await RegularUser.findOne({ userId: blog.userId._id }).select("profilePicture -_id");
+                
+                const blogObj = blog.toObject();
+                if (blogObj.userId && blogObj.userId._id) {
+                    delete blogObj.userId._id;
+                }
+
+                return {
+                    ...blogObj,
+                    profilePicture: regularUser ? regularUser.profilePicture : undefined
+                };
+            })
+        );
+
+        return res.status(200).json({ blogs: blogData });
     } catch (e) {
         res.status(500).json({ message: "Server error", error: e.message });
     }
@@ -188,7 +285,10 @@ const uploadImage = async (req, res) => {
 module.exports = {
     findAll,
     save,
-    findById,
+    findTrending,
+    countRoute,
+    countSearchRoute,
+    findByTag,
     deleteById,
     update,
     uploadImage,
