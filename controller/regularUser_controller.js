@@ -54,15 +54,35 @@ const save = async (req, res) => {
 };
 
 // Find a regular user by ID
-const findById = async (req, res) => {
+const findRegularUser = async (req, res) => {
     try {
-        const regularUser = await RegularUser.findById(req.params.id).populate("userId", "fullName email");
-        if (!regularUser) {
-            return res.status(404).json({ message: "Regular user not found" });
+        let { query } = req.body;
+
+        // First, search for the username in the User schema
+        const users = await User.find({ "username": new RegExp(query, 'i') })
+            .limit(50)
+            .select("fullName username");  // Select fullName and username from User schema
+        
+        if (users.length === 0) {
+            return res.status(404).json({ message: "No users found." });
         }
-        res.status(200).json(regularUser);
+
+        // Now, fetch associated RegularUser data for the matched users
+        const regularUsers = await RegularUser.find({ "userId": { $in: users.map(user => user._id) } })
+            .select("profilePicture userId");
+
+        // Map the RegularUser data and combine with User info
+        const formattedUsers = regularUsers.map(regularUser => {
+            const user = users.find(u => u._id.toString() === regularUser.userId.toString());
+            return {
+                fullName: user.fullName,
+                username: user.username,
+                profilePicture: regularUser.profilePicture
+            };
+        });
+
+        return res.status(200).json({ users: formattedUsers });
     } catch (e) {
-        console.error(e);
         res.status(500).json({ message: "Server error", error: e.message });
     }
 };
@@ -129,7 +149,7 @@ const uploadImage = async (req, res, next) => {
 module.exports = {
     findAll,
     save,
-    findById,
+    findRegularUser,
     deleteById,
     update,
     uploadImage,

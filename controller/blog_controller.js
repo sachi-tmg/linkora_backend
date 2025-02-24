@@ -190,8 +190,15 @@ const findTrending = async (req, res) => {
 // Find a blog by ID
 const findByTag = async (req, res) => {
     try {
-        let { tag, page } = req.body;
-        let findQuery = { tags: tag, draft: false };
+        let { tag, query, page } = req.body;
+        let findQuery;
+
+        if(tag){
+            findQuery = { tags: tag, draft: false };
+        } else if(query) {
+            findQuery = { draft:false, title: new RegExp(query, 'i') }
+        }
+
         let maxLimit = 2;
 
         const blogs = await Blog.find(findQuery)
