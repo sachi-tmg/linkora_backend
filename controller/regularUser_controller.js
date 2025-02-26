@@ -62,10 +62,6 @@ const findRegularUser = async (req, res) => {
         const users = await User.find({ "username": new RegExp(query, 'i') })
             .limit(50)
             .select("fullName username");  // Select fullName and username from User schema
-        
-        if (users.length === 0) {
-            return res.status(404).json({ message: "No users found." });
-        }
 
         // Now, fetch associated RegularUser data for the matched users
         const regularUsers = await RegularUser.find({ "userId": { $in: users.map(user => user._id) } })
@@ -86,6 +82,33 @@ const findRegularUser = async (req, res) => {
         res.status(500).json({ message: "Server error", error: e.message });
     }
 };
+
+
+const findProfile = async (req, res) => {
+    try {
+        let { username } = req.body;
+
+        // Find the user by username
+        const user = await User.findOne({ username })
+            .select("-password -google_auth -roleId -loggedInOnce -dateCreated");
+
+        // Find the associated RegularUser data
+        const regularUser = await RegularUser.findOne({ userId: user._id })
+            .select("-blogs -_id");
+
+        return res.status(200).json({ 
+            user: {
+                ...user.toObject(),
+                regularUser: regularUser || null
+            } 
+        });
+
+    } catch (e) {
+        res.status(500).json({ message: "Server error", error: e.message });
+    }
+};
+
+
 
 // Delete a regular user by ID
 const deleteById = async (req, res) => {
@@ -150,6 +173,7 @@ module.exports = {
     findAll,
     save,
     findRegularUser,
+    findProfile,
     deleteById,
     update,
     uploadImage,

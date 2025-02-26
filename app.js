@@ -4,7 +4,6 @@ const user_router = require("./routes/user_route")
 const role_router = require("./routes/role_route")
 const regularUser_router = require("./routes/regularUser_route")
 const blog_router = require("./routes/blog_route");
-const like_router = require("./routes/like_route");
 const comment_router = require("./routes/comment_route");
 const cors = require("cors");
 require("dotenv").config();
@@ -27,7 +26,6 @@ app.use("/api/role", role_router);
 app.use("/api/user", user_router);
 app.use("/api/regular-users", regularUser_router);
 app.use("/api/blog", blog_router);
-app.use("/api/like", like_router);
 app.use("/api/comment", comment_router);
 app.use("/public", express.static('public'));
 

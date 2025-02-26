@@ -5,11 +5,12 @@ const {
     findTrending,
     countRoute,
     countSearchRoute,
-    findByTag,
-    deleteById,
-    update,
+    searchInBlogs,
+    getFullBlog,
     uploadImage,
     verifyJWT,
+    likeBlog,
+    isLiked,
 } = require("../controller/blog_controller");
 const blogValidation = require("../validation/blog_validation");
 const uploads = require("../middleware/uploadBanner");
@@ -18,13 +19,14 @@ const router = express.Router();
 
 router.post("/latest-blogs", findAll); // Get all blogs
 router.post("/all-latest-blogs-count", countRoute);
-router.post("/create-blog", verifyJWT, uploads, blogValidation, save); // Create a new blog (uploading a blog image)
+router.post("/create-blog", verifyJWT, uploads, save); // Create a new blog (uploading a blog image)
 router.get("/trending-blogs", findTrending);
-router.post("/search-blogs", findByTag);
+router.post("/search-blogs", searchInBlogs);
 router.post("/search-blogs-count", countSearchRoute);
-router.delete("/:id", deleteById); // Delete a blog by ID
-router.put("/:id", blogValidation, uploads, update); // Update a blog (with optional file upload)
+router.post("/blog-view", getFullBlog);
 router.post("/uploadBanner", uploads, uploadImage);
+router.post("/like-blog", verifyJWT,likeBlog);
+router.post("/is-liked-by-user", verifyJWT,isLiked);
 
 module.exports = router;
 

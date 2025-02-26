@@ -4,6 +4,7 @@ const {
     findAll,
     save,
     findRegularUser,
+    findProfile,
     deleteById,
     update,
     uploadImage,
@@ -14,11 +15,12 @@ const regularUserValidation = require("../validation/regularUser_validation");
 const router = express.Router();
 
 // Routes
-router.get("/", findAll); // Get all regular users
-router.post("/saveRegularUser", uploads, regularUserValidation, save); // Create a new regular user (uploading a profile image)
-router.post("/search-users", findRegularUser); // Get a regular user by ID
-router.delete("/:id", deleteById); // Delete a regular user by ID
+router.get("/", findAll);
+router.post("/saveRegularUser", uploads, regularUserValidation, save);
+router.post("/search-users", findRegularUser); 
+router.post("/get-profile", findProfile);
+router.delete("/:id", deleteById); 
 router.put("/save", regularUserValidation, update);
-router.post("/uploadImage", uploads, uploadImage); // Update a regular user (with optional file upload)
+router.post("/uploadImage", uploads, uploadImage); 
 
 module.exports = router;

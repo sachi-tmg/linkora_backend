@@ -3,6 +3,7 @@ const User = require("../model/user");
 const RegularUser = require("../model/regularUser");
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require('uuid');
+const Notification = require("../model/notification");
 
 const verifyJWT = (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -80,9 +81,16 @@ const countRoute = async (req, res) => {
 
 const countSearchRoute = async (req, res) => {
     try {
-        let { tag } = req.body;
+        let { tag, query, userId } = req.body;
+        let findQuery;
 
-        let findQuery = { tags: tag, draft: false };
+        if(tag){
+            findQuery = { tags: tag, draft: false };
+        } else if(query) {
+            findQuery = { draft:false, title: new RegExp(query, 'i') }
+        } else if(userId) {
+            findQuery = {userId, draft: false}
+        }
 
         Blog.countDocuments(findQuery)
         .then(count => {
@@ -95,13 +103,12 @@ const countSearchRoute = async (req, res) => {
     } catch (err) {
         return res.status(500).json({ error: err.message })
     }
-
 } 
 
 // Save a new blog
 const save = async (req, res) => {
     try {
-        let { title, des, blogPicture, content, tags, draft } = req.body;
+        let { title, des, blogPicture, content, tags, draft, id } = req.body;
 
         const userId = req.user.userId;
 
@@ -113,33 +120,47 @@ const save = async (req, res) => {
 
         tags = Array.isArray(tags) ? tags.map(tag => tag.toLowerCase()) : [];
 
-        let blog_id = title.replace(/[^a-zA-Z0-9]/g, ' ').replace(/\s+/g,"-").trim() + '-' + uuidv4();
+        let blog_id = id || title.replace(/[^a-zA-Z0-9]/g, ' ').replace(/\s+/g,"-").trim() + '-' + uuidv4();
 
-        const newBlog = new Blog({
-            userId,
-            blog_id,
-            title,
-            des,
-            content,
-            tags,
-            blogPicture,
-            draft: Boolean(draft),
-        });
+        if(id){
 
-        console.log(newBlog)
+            Blog.findOneAndUpdate({ blog_id }, { title, des, blogPicture, content, tags, draft: draft ? draft : false })
+            .then(blog => {
+                return res.status(200).json({id: blog_id})
+            })
+            .catch(err => {
+                return res.status(500).json({ error: err.message })
+            })
 
-        const savedBlog = await newBlog.save();
+        } else {
+            const newBlog = new Blog({
+                userId,
+                blog_id,
+                title,
+                des,
+                content,
+                tags,
+                blogPicture,
+                draft: Boolean(draft),
+            });
+    
+            console.log(newBlog)
+    
+            const savedBlog = await newBlog.save();
+    
+            let incrementVal = draft ? 0 : 1;
+            
+            await RegularUser.findOneAndUpdate(
+                { userId }, 
+                { 
+                    $inc : {"account_info.total_posts" : incrementVal}, 
+                    $push : {"blogs": savedBlog._id},
+                },
+            );
+                return res.status(200).json({ id: savedBlog._id })
+        }
 
-        let incrementVal = draft ? 0 : 1;
         
-        await RegularUser.findOneAndUpdate(
-            { userId }, 
-            { 
-                $inc : {"account_info.total_posts" : incrementVal}, 
-                $push : {"blogs": savedBlog._id},
-            },
-        );
-            return res.status(200).json({ id: savedBlog._id })
       
 
     } catch (e) {
@@ -187,19 +208,21 @@ const findTrending = async (req, res) => {
 };
 
 
-// Find a blog by ID
-const findByTag = async (req, res) => {
+// Find a searching blogs
+const searchInBlogs = async (req, res) => {
     try {
-        let { tag, query, page } = req.body;
+        let { tag, query, userId, page, eliminate_blog } = req.body;
         let findQuery;
 
         if(tag){
-            findQuery = { tags: tag, draft: false };
+            findQuery = { tags: tag, draft: false, blog_id: { $ne: eliminate_blog } };
         } else if(query) {
             findQuery = { draft:false, title: new RegExp(query, 'i') }
+        } else if(userId) {
+            findQuery = {userId, draft: false}
         }
 
-        let maxLimit = 2;
+        let maxLimit = 5;
 
         const blogs = await Blog.find(findQuery)
             .populate({
@@ -234,48 +257,58 @@ const findByTag = async (req, res) => {
     }
 };
 
-// Delete a blog by ID
-const deleteById = async (req, res) => {
+const getFullBlog = async (req, res) => {
     try {
-        const blog = await Blog.findByIdAndDelete(req.params.id);
-        if (!blog) {
-            return res.status(404).json({ message: "Blog not found" });
+        let { blog_id, draft, mode } = req.body;
+
+        if (!blog_id) {
+            return res.status(400).json({ message: "blog_id is required" });
         }
-        res.status(200).json({ message: "Blog deleted successfully!" });
-    } catch (e) {
-        res.status(500).json({ message: "Server error", error: e.message });
-    }
-};
 
-// Update a blog by ID
-const update = async (req, res) => {
-    try {
-        const { title, des, content, draft } = req.body;
-        const blogPicture = req.file ? req.file.originalname : undefined;
+        let incrementVal = mode != 'edit' ? 1:0;
 
-        const updateData = {
-            title,
-            des,
-            content: Array.isArray(content) ? content : [content],
-            draft,
-            dateUpdated: Date.now(), // Update timestamp
+        let blog = await Blog.findOne({ blog_id })
+            .populate({
+                path: "userId",
+                select: "fullName username",
+            })
+            .select("title des content blogPicture activity dateCreated blog_id tags userId");
+
+        if (!blog) {
+            return res.status(500).json({ message: "Blog not found" });
+        }
+
+        await Blog.updateOne({ blog_id }, { $inc: { "activity.total_reads": incrementVal } });
+
+        const regularUser = await RegularUser.findOne({ userId: blog.userId._id }).select("profilePicture -_id");
+
+        await RegularUser.findOneAndUpdate(
+            { userId: blog.userId._id }, 
+            { $inc: { "account_info.total_reads": incrementVal } },
+            { new: true }  
+        );
+
+        const blogData = {
+            ...blog.toObject(),
+            profilePicture: regularUser ? regularUser.profilePicture : undefined
         };
 
-        if (blogPicture) {
-            updateData.blogPicture = blogPicture;
+        if (blogData.userId && blogData.userId._id) {
+            delete blogData.userId._id;
         }
 
-        const blog = await Blog.findByIdAndUpdate(req.params.id, updateData, { new: true });
-
-        if (!blog) {
-            return res.status(404).json({ message: "Blog not found" });
+        if(blog.draft && !draft){
+            return res.status(500).json({ error: 'you cannot access blog drafts data'})
         }
 
-        res.status(200).json(blog);
+        return res.status(200).json({ blog: blogData });
+
     } catch (e) {
+        console.error("Error fetching full blog:", e.message);
         res.status(500).json({ message: "Server error", error: e.message });
     }
 };
+
 
 // Handle Image Upload
 const uploadImage = async (req, res) => {
@@ -289,15 +322,48 @@ const uploadImage = async (req, res) => {
     });
     console.log(req.file.filename)
 };
+
+
+const likeBlog = async (req, res) => {
+    let user_id = req.user.userId;
+
+    let { _id, islikedByUser } = req.body;
+
+    let incrementVal = !islikedByUser ? 1 : -1;
+
+    await Blog.findOneAndUpdate({ _id }, { $inc: { "activity.likeCount": incrementVal } })
+    .then(blog => {
+        if(!islikedByUser){
+            let like = new Notification({
+                type: "like",
+                blog: _id,
+                notification_for: blog.userId,
+                user: user_id
+            })
+
+            like.save().then(notification => {
+                return res.status(200).json({ like_by_user: true })
+            })
+        }
+    })
+}
+
+const isLiked = async (req, res) => {
+
+}
+
+
+
 module.exports = {
     findAll,
     save,
     findTrending,
     countRoute,
     countSearchRoute,
-    findByTag,
-    deleteById,
-    update,
+    searchInBlogs,
+    getFullBlog,
     uploadImage,
     verifyJWT,
+    likeBlog,
+    isLiked,
 };
