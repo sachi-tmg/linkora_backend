@@ -12,7 +12,6 @@ const {
     likeBlog,
     isLiked,
 } = require("../controller/blog_controller");
-const blogValidation = require("../validation/blog_validation");
 const uploads = require("../middleware/uploadBanner");
 
 const router = express.Router();

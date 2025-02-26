@@ -325,31 +325,61 @@ const uploadImage = async (req, res) => {
 
 
 const likeBlog = async (req, res) => {
-    let user_id = req.user.userId;
+    try {
+        let user_id = req.user.userId;
+        let { _id, isLikedByUser } = req.body;
 
-    let { _id, islikedByUser } = req.body;
+        let incrementVal = isLikedByUser ? -1 : 1;
 
-    let incrementVal = !islikedByUser ? 1 : -1;
+        let blog = await Blog.findOneAndUpdate(
+            { _id },
+            { $inc: { "activity.likeCount": incrementVal } },
+            { new: true } 
+        );
 
-    await Blog.findOneAndUpdate({ _id }, { $inc: { "activity.likeCount": incrementVal } })
-    .then(blog => {
-        if(!islikedByUser){
-            let like = new Notification({
+        if (!blog) {
+            return res.status(404).json({ error: "Blog not found" });
+        }
+
+        if (!isLikedByUser) {
+            let likeNotification = new Notification({
                 type: "like",
                 blog: _id,
                 notification_for: blog.userId,
                 user: user_id
-            })
+            });
 
-            like.save().then(notification => {
-                return res.status(200).json({ like_by_user: true })
-            })
+            await likeNotification.save();
+            return res.status(200).json({ liked_by_user: true });
+        } else {
+            // Remove the like notification
+            await Notification.findOneAndDelete({ 
+                user: user_id, 
+                type: "like", 
+                blog: _id 
+            });
+
+            return res.status(200).json({ liked_by_user: false });
         }
-    })
-}
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+};
+
 
 const isLiked = async (req, res) => {
 
+    let user_id = req.user.userId;
+
+    let { _id } = req.body;
+
+    Notification.exists({ user: user_id, type: "like", blog: _id })
+    .then(result => {
+        return res.status(200).json({result})
+    })
+    .catch(err => {
+        return res.status(500).json({ error: err.message})
+    })
 }
 
 
