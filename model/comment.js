@@ -1,19 +1,36 @@
 const mongoose = require("mongoose");
 
 const commentSchema = new mongoose.Schema({
-    blogId: {
+    blog_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "blogs",
         required: true,
+        ref: 'blogs'
     },
     blog_author: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
         ref: 'blogs',
     },
-    content: {
+    comment: {
         type: String,
-        required: true,
+        required: true
+    },
+    children: {
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: 'comments'
+    },
+    commented_by: {
+        type: mongoose.Schema.Types.ObjectId,
+        require: true,
+        ref: 'users'
+    },
+    isReply: {
+        type: Boolean,
+        default: false,
+    },
+    parent: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'comments'
     },
     dateCommented: {
         type: Date,

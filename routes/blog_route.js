@@ -2,6 +2,7 @@ const express = require("express");
 const {
     findAll,
     save,
+    getAll,
     findTrending,
     countRoute,
     countSearchRoute,
@@ -16,9 +17,10 @@ const uploads = require("../middleware/uploadBanner");
 
 const router = express.Router();
 
-router.post("/latest-blogs", findAll); // Get all blogs
+router.post("/latest-blogs", findAll); 
+router.get("/get-all-blogs", getAll);
 router.post("/all-latest-blogs-count", countRoute);
-router.post("/create-blog", verifyJWT, uploads, save); // Create a new blog (uploading a blog image)
+router.post("/create-blog", verifyJWT, uploads, save);
 router.get("/trending-blogs", findTrending);
 router.post("/search-blogs", searchInBlogs);
 router.post("/search-blogs-count", countSearchRoute);

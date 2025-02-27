@@ -293,9 +293,9 @@ const getFullBlog = async (req, res) => {
             profilePicture: regularUser ? regularUser.profilePicture : undefined
         };
 
-        if (blogData.userId && blogData.userId._id) {
-            delete blogData.userId._id;
-        }
+        // if (blogData.userId && blogData.userId._id) {
+        //     delete blogData.userId._id;
+        // }
 
         if(blog.draft && !draft){
             return res.status(500).json({ error: 'you cannot access blog drafts data'})
@@ -383,9 +383,67 @@ const isLiked = async (req, res) => {
 }
 
 
+const getAll = async (req, res) => {
+    try {
+        // Fetch all blogs (no pagination)
+        const blogs = await Blog.find({ draft: false })
+            .populate({
+                path: "userId",
+                select: "fullName email username",
+            })
+            .sort({ dateCreated: -1 }) // Sort blogs by date
+            .select("blog_id title des blogPicture activity tags dateCreated userId -_id");
+
+        // Fetch profile pictures separately and flatten the structure
+        const blogData = await Promise.all(
+            blogs.map(async (blog) => {
+                const regularUser = await RegularUser.findOne({ userId: blog.userId._id })
+                    .select("profilePicture -_id");
+
+                // Destructure blog data
+                const {
+                    blog_id,
+                    title,
+                    des,
+                    blogPicture,
+                    activity,
+                    tags,
+                    dateCreated,
+                    userId
+                } = blog.toObject();
+
+                return {
+                    blog_id,
+                    title,
+                    des,
+                    blogPicture,
+                    tags,
+                    dateCreated,
+                    likeCount: activity.likeCount,
+                    commentCount: activity.commentCount,
+                    totalReads: activity.total_reads,
+                    totalParentComments: activity.total_parent_comments,
+                    fullName: userId.fullName,
+                    email: userId.email,
+                    username: userId.username,
+                    profilePicture: regularUser ? regularUser.profilePicture : null
+                };
+            })
+        );
+
+        return res.status(200).json({
+            success: true,
+            count: blogData.length,
+            data: blogData
+        });
+    } catch (e) {
+        return res.status(500).json({ success: false, message: "Server error", error: e.message });
+    }
+};
 
 module.exports = {
     findAll,
+    getAll,
     save,
     findTrending,
     countRoute,

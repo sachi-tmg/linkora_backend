@@ -1,15 +1,12 @@
 const express = require("express");
-const { save, findByBlogId, deleteById } = require("../controller/comment_controller");
+const { saveComment, getComment, deleteComment } = require("../controller/comment_controller");
 const router = express.Router();
-const commentValidation = require("../validation/comment_validation");
+const {
+    verifyJWT,
+} = require("../controller/blog_controller");
 
-// Add a comment
-router.post("/", commentValidation, save);
-
-// Get all comments for a specific blog
-router.get("/:blogId", findByBlogId);
-
-// Delete a comment
-router.delete("/:id", deleteById);
+router.post("/create-comment",verifyJWT, saveComment);
+router.post("/get-blog-comments", getComment);
+router.post("/delete-comment",verifyJWT, deleteComment);
 
 module.exports = router;
