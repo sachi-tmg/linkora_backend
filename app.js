@@ -29,7 +29,6 @@ app.use("/api/blog", blog_router);
 app.use("/api/comment", comment_router);
 app.use("/public", express.static('public'));
 
-
 const port = 3000;
 app.listen(port,() => {
     console.log('server running at http://localhost:3000')

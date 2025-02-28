@@ -124,39 +124,54 @@ const deleteById = async (req, res) => {
     }
 };
 
-const update = async (req, res) => {
-    try {
-        // Extract userId from the request body
-        const { userId } = req.body;
 
-        // Find the RegularUser by userId
-        const regularUser = await RegularUser.findOne({ userId: userId });
-        if (!regularUser) {
+const update = async (req, res) => { 
+    console.log("Received Data:", req.body); // Debugging
+
+    const { username, bio, profilePicture, social_links } = req.body;
+    const userId = req.user.userId; // Get the userId from req.user
+
+    try {
+        // First, update the `User` collection for the username
+        const updatedUser = await User.findOneAndUpdate(
+            { _id: userId }, // Use userId instead of req.user._id
+            { $set: { username } },
+            { new: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Then, update the `RegularUser` collection for bio, profilePicture, and social_links
+        const updatedRegularUser = await RegularUser.findOneAndUpdate(
+            { userId: userId }, // Match the userId of the logged-in user
+            { 
+                $set: { 
+                    bio, 
+                    profilePicture, 
+                    "social_links.youtube": social_links.youtube,
+                    "social_links.instagram": social_links.instagram,
+                    "social_links.facebook": social_links.facebook,
+                    "social_links.twitter": social_links.twitter,
+                    "social_links.github": social_links.github,
+                    "social_links.website": social_links.website
+                } 
+            },
+            { new: true }
+        );
+
+        if (!updatedRegularUser) {
             return res.status(404).json({ message: "Regular user not found" });
         }
 
-        // Prepare update data for RegularUser
-        const updateData = {};
-        const { profilePicture } = req.body;
-        if (profilePicture) updateData.profilePicture = profilePicture;
-
-        // Update RegularUser fields (bio, profilePicture)
-        const { bio } = req.body;
-        if (bio) updateData.bio = bio;
-
-        // Now update the RegularUser document
-        const updatedRegularUser = await RegularUser.findOneAndUpdate({ userId: userId }, updateData, { new: true });
-        if (!updatedRegularUser) {
-            return res.status(404).json({ message: "RegularUser update failed" });
-        }
-
-        // Return the updated RegularUser
-        res.status(200).json(updatedRegularUser);
-    } catch (e) {
-        console.error(e); // Log the error for debugging purposes
-        res.status(500).json({ message: "Server error", error: e.message });
+        res.json({ message: "Profile updated successfully", user: updatedRegularUser });
+    } catch (error) {
+        console.error("Error during update:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 };
+
 
 const uploadImage = async (req, res, next) => {
     if (!req.file) {
