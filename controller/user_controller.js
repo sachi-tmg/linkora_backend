@@ -212,6 +212,47 @@ const findUserByRoleId = async (req, res) => {
     }
 };
 
+const changingPassword = async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    try {
+        // Find the user by ID
+        const user = await User.findOne({ _id: req.user.userId });
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Compare the current password with the stored one
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+        if (!isMatch) {
+            return res.status(403).json({ error: "Incorrect current password" });
+        }
+
+        // Hash the new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update the password in the database
+        const updatedUser = await User.findOneAndUpdate(
+            { _id: req.user.userId },
+            { password: hashedPassword },
+            { new: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(500).json({ error: "Failed to update password" });
+        }
+
+        return res.status(200).json({ status: 'Password changed successfully' });
+
+    } catch (err) {
+        console.error("Error in changing password:", err);
+        return res.status(500).json({ error: "Some error occurred while changing the password, please try again" });
+    }
+};
+
+
 module.exports = {
     findAll,
     save,
@@ -220,4 +261,5 @@ module.exports = {
     deleteById,
     update,
     findUserByRoleId,
+    changingPassword,
 };
