@@ -5,7 +5,7 @@ require("dotenv").config();
 const jwt = require("jsonwebtoken")
 const RegularUser = require("../model/regularUser");
 const { v4: uuidv4 } = require('uuid');
-const { getAuth } = require("firebase-admin/auth");
+const nodemailer = require("nodemailer");
 
 // Find all users with role details
 const findAll = async (req, res) => {
@@ -59,6 +59,28 @@ const save = async (req, res) => {
         // Find all regular users and populate their details
         const usersWithRole = await User.find({ roleId: "677158fc2375232531ced234" }); // Use actual roleId
         const regularUsers = await RegularUser.find().populate("userId", "fullName email username");
+
+        const transporter = nodemailer.createTransport({
+            host:"smtp.gmail.com",
+            post: 587,
+            secure: false,
+            protocol:"smtp",
+            auth:{
+                user: "sachitamang43210@gmail.com",
+                pass: "vplmqrmlmexiltrs"  
+            }
+        })  
+
+        
+        const info = await transporter.sendMail({
+            from: "sachitamang43210@gmail.com",
+            to: newUser.email, 
+            subject: 'Welcome to Linkora!',
+            html: `
+            <h1>Registration Completed!!</h1>
+            <p>Hello ${newUser.fullName},\n\nThank you for registering at Linkora. Your account has been successfully created.</p>
+            `
+        });
 
         res.status(201).json({
             success: true,
