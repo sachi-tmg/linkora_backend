@@ -490,6 +490,12 @@ const gettingNotifications = (req, res) => {
         .sort({ createdAt: -1 }) 
         .select("createdAt type seen reply")
         .then(notifications => {
+
+            Notification.updateMany(findQuery, {seen: true})
+            .skip(skipDocs)
+            .limit(maxLimit)
+            .then(() => console.log('notification seen'))
+
             return res.status(200).json({ notifications });
         })
         .catch(err => {
