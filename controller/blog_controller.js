@@ -1,6 +1,8 @@
 const Blog = require("../model/blog");
 const User = require("../model/user");
 const RegularUser = require("../model/regularUser");
+const Notificationss = require("../model/notification")
+const Comment = require("../model/comment")
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require('uuid');
 const Notification = require("../model/notification");
@@ -20,7 +22,6 @@ const verifyJWT = (req, res, next) => {
 
         req.user = user
         next()
-
         
     })
 };
@@ -441,6 +442,149 @@ const getAll = async (req, res) => {
     }
 };
 
+const notificationsAvailability = (req, res) => {
+
+    let user_id = req.user.userId;
+
+    Notification.exists({ notification_for: user_id, seen: false, user: { $ne: user_id } })
+    .then(result => {
+        if(result){
+            return res.status(200).json({ new_notification_available: true })
+        } else {
+            return res.status(200).json({ new_notification_available: false })
+        }
+    })
+    .catch(err => {
+        console.log(err.message);
+        return res.status(500).json({error: err.message})
+    })
+}
+
+const gettingNotifications = (req, res) => {
+    let user_id = req.user.userId;
+
+    let { page, filter, deletedDocCount } = req.body;
+
+    let maxLimit = 10;
+
+    let findQuery = { notification_for: user_id, user: { $ne: user_id } };
+
+    let skipDocs = (page - 1) * maxLimit;
+
+    if (filter !== 'all') {
+        findQuery.type = filter;
+    }
+
+    if (deletedDocCount) {
+        skipDocs -= deletedDocCount;
+    }
+
+    Notification.find(findQuery)
+        .skip(skipDocs)
+        .limit(maxLimit)
+        .populate("blog", "title blog_id")
+        .populate("user", "fullname username") // Populate user info
+        .populate("comment", "comment")
+        .populate("replied_on_comment", "comment")
+        .populate("reply", "comment")
+        .sort({ createdAt: -1 }) 
+        .select("createdAt type seen reply")
+        .then(notifications => {
+            return res.status(200).json({ notifications });
+        })
+        .catch(err => {
+            console.log(err.message);
+            return res.status(500).json({ error: err.message });
+        });
+};
+
+const notificationCount = (req, res) =>{
+
+    let user_id = req.user.userId;
+
+    let { filter } = req.body;
+
+    let findQuery = { notification_for:user_id, user: {$ne: user_id} }
+
+    if(filter != 'all'){
+        findQuery.type = filter;
+    }
+
+    Notification.countDocuments(findQuery)
+    .then(count => {
+        return res.status(200).json({totalDocs: count})
+    })
+    .catch(err => {
+        return res.status(500).json({ error: err.message })
+    })
+
+}
+
+
+const userBlog = (req, res) => {
+
+    let user_id = req.user.userId;
+
+    let { page, draft, query, deletedDocCount  } = req.body;
+
+    let maxLimit = 5;
+    let skipDocs = (page -1) * maxLimit;
+
+    if(deletedDocCount){
+        skipDocs -= deletedDocCount;
+    }
+
+    Blog.find({ userId: user_id, draft, title: new RegExp(query, 'i') })
+    .skip(skipDocs)
+    .limit(maxLimit)
+    .sort({dateCreated: -1})
+    .select("title blogPicture dateCreated blog_id activity des draft -_id")
+    .then(blogs => {
+        return res.status(200).json({blogs})
+    })
+    .catch(err => {
+        return res.status(500).json({error: err.message});
+    })
+
+}
+
+const countUserBlog = (req, res) =>{
+    let user_id = req.user.userId;
+
+    let { draft, query } = req.body;
+
+    Blog.countDocuments({ userId: user_id, draft, title: new RegExp(query, 'i')})
+    .then(count => {
+        return res.status(200).json({ totalDocs: count })
+    })
+    .catch(err => {
+        console.log(err.message);
+        return res.status(500).json({ error: err.message });
+    })
+}
+
+const deletingBlog = (req, res) => {
+
+    let user_id = req.user.userId;
+    let { blog_id } = req.body;
+
+    Blog.findOneAndDelete({ blog_id })
+    .then(blog => {
+
+        Notificationss.deleteMany({ blog: blog._id }).then(data => console.log('notifications deleted'));
+        Comment.deleteMany({ blog: blog._id }).then(data => console.log('comments deleted'));
+        RegularUser.findOneAndUpdate({ userId: user_id }, { $pull: { blog: blog._id}, $inc: { "account_info.total_posts": -1 } })
+        .then(user => console.log('blog deleted'));
+
+        return res.status(200).json({status: 'done'});
+
+    })
+    .catch(err => {
+        return res. status(500).json({ error: err.message})
+    })
+
+}
+
 module.exports = {
     findAll,
     getAll,
@@ -454,4 +598,10 @@ module.exports = {
     verifyJWT,
     likeBlog,
     isLiked,
+    notificationsAvailability,
+    gettingNotifications,
+    notificationCount,
+    userBlog,
+    countUserBlog,
+    deletingBlog,
 };

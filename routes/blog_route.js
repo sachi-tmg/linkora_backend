@@ -12,6 +12,12 @@ const {
     verifyJWT,
     likeBlog,
     isLiked,
+    notificationsAvailability,
+    gettingNotifications,
+    notificationCount,
+    userBlog,
+    countUserBlog,
+    deletingBlog,
 } = require("../controller/blog_controller");
 const uploads = require("../middleware/uploadBanner");
 
@@ -28,31 +34,11 @@ router.post("/blog-view", getFullBlog);
 router.post("/uploadBanner", uploads, uploadImage);
 router.post("/like-blog", verifyJWT,likeBlog);
 router.post("/is-liked-by-user", verifyJWT,isLiked);
+router.get("/new-notification", verifyJWT,notificationsAvailability);
+router.post("/notifications", verifyJWT,gettingNotifications);
+router.post("/all-notifications-count", verifyJWT,notificationCount);
+router.post("/user-written-blogs", verifyJWT,userBlog);
+router.post("/user-written-blogs-count", verifyJWT,countUserBlog);
+router.post("/delete-blog", verifyJWT,deletingBlog);
 
 module.exports = router;
-
-
-// const multer = require("multer");
-// const path = require("path");
-// const fs = require("fs");
-
-// // Ensure the directory exists or create it
-// const uploadFolder = path.join(__dirname, '../blogPictures'); // Relative path to your project root
-
-// if (!fs.existsSync(uploadFolder)) {
-//     fs.mkdirSync(uploadFolder, { recursive: true }); // Create the folder if it doesn't exist
-// }
-
-// // Set up Multer storage configuration
-// const storage = multer.diskStorage({
-//     destination: function (req, res, cb) {
-//         cb(null, uploadFolder); // Set destination to blogPictures folder
-//     },
-//     filename: function (req, file, cb) {
-//         cb(null, file.originalname); // Use the original file name
-//     }
-// });
-
-// const upload = multer({ storage });
-
-// Routes
