@@ -6,8 +6,8 @@ const fs = require("fs");
 // Find all regular users with user details
 const findAll = async (req, res) => {
     try {
-        // Find all users with roleId "677158fc2375232531ced234" (regularUser role)
-        const usersWithRole = await User.find({ roleId: "677158fc2375232531ced234" });
+        // Find all users with roleId "67c3ba812308ac3b1d72f309" (regularUser role)
+        const usersWithRole = await User.find({ roleId: "67c3ba812308ac3b1d72f309" });
 
         // Automatically create RegularUser profiles if they don't exist
         for (const user of usersWithRole) {
@@ -33,7 +33,7 @@ const save = async (req, res) => {
         const profilePicture = req.file ? req.file.originalname : undefined;
 
         // Validate if the user exists and has the correct role
-        const user = await User.findOne({ _id: userId, roleId: "677158fc2375232531ced234" });
+        const user = await User.findOne({ _id: userId, roleId: "67c3ba812308ac3b1d72f309" });
         if (!user) {
             return res.status(400).json({ message: "Invalid user ID or role" });
         }

@@ -119,6 +119,10 @@ const save = async (req, res) => {
             return res.status(400).json({ message: "Invalid user ID" });
         }
 
+        if (blogPicture && blogPicture.includes('localhost')) {
+            blogPicture = blogPicture.replace('http://localhost:3000', 'http://192.168.1.3:3000');
+        }
+
         tags = Array.isArray(tags) ? tags.map(tag => tag.toLowerCase()) : [];
 
         let blog_id = id || title.replace(/[^a-zA-Z0-9]/g, ' ').replace(/\s+/g,"-").trim() + '-' + uuidv4();

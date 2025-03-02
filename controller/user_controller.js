@@ -55,14 +55,13 @@ const save = async (req, res) => {
         if (!existingRegularUser) {
             await RegularUser.create({ userId: newUser._id });
         }
-
         // Find all regular users and populate their details
-        const usersWithRole = await User.find({ roleId: "677158fc2375232531ced234" }); // Use actual roleId
+        // const usersWithRole = await User.find({ roleId: "67c3ba812308ac3b1d72f309" }); // Use actual roleId
         const regularUsers = await RegularUser.find().populate("userId", "fullName email username");
 
         const transporter = nodemailer.createTransport({
             host:"smtp.gmail.com",
-            post: 587,
+            port: 587,
             secure: false,
             protocol:"smtp",
             auth:{
@@ -151,7 +150,6 @@ const login = async (req, res) => {
             username: user.username,
             profilePicture: profilePicture,
         });
-        console.log(profilePicture)
     } catch (e) {
         console.error("Login error:", e.message);  // Log error details
         res.status(500).json({ message: "Server error", error: e.message });
@@ -284,4 +282,5 @@ module.exports = {
     update,
     findUserByRoleId,
     changingPassword,
+    generateUsername,
 };
